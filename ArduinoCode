@@ -1,0 +1,269 @@
+#include <Wire.h>
+#include <SPI.h>
+#include <cstdlib>
+#include <Adafruit_BMP280.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
+#include <ArduinoJson.h>
+#include <WiFiClient.h>
+
+
+
+/////////////////////////////////////////////////////
+//    WIFI CREDENTIALS
+/////////////////////////////////////////////////////
+const char* ssid = "wifi name";
+const char* password = "wifi password";
+/////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////
+//    GLOBAL VALUES AND VARIABLES - 
+///////////////////////////////////////////////////
+// FOR TEMPERATURE
+const char URL[] = "http://4.246.178.136:8123/api/states/";
+const char TOKEN[] = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiI2YzFkMWI5YmI1MTM0N2I5OWE3NGU1NzA2NzhlZjFjNyIsImlhdCI6MTY5MDg5NjM0MSwiZXhwIjoyMDA2MjU2MzQxfQ.aBLGjRtS_esfX4J-LxTGWXVdw6JHSjS1y-kIqFbL7AQ";
+const char ENDPOINT_TEMPERATURE[] = "sensor.home_temperature";
+const char ENDPOINT_PRESSURE[] = "sensor.home_pressure";
+const char ENDPOINT_SWITCH[] = "switch.blind";
+const int switchPin = 4;     // Pin D4 for the switch of our ESP8266
+const int ledPin = LED_BUILTIN;  // Built-in LED pin for most ESP8266 boards
+
+
+// FOR BMP280  -> SCL=d1 , SDA=d2
+#define BMP_SCK  (13)
+#define BMP_MISO (12)
+#define BMP_MOSI (11)
+#define BMP_CS   (10)
+Adafruit_BMP280 bmp; // I2C
+
+// This varaible is used for calling api ...
+WiFiClient client;
+
+//////////////////////////////////////////////////////////////
+//    GLOBAL VALUES AND VARIABLES - END
+////////////////////////////////////////////////////////////
+
+
+
+
+
+
+
+void setup() {
+  Serial.begin(9600);
+  while ( !Serial ) delay(100);   // wait for native usb
+  connectWIFI();
+
+  // FOR TEMPERATURE
+  connectBMP();
+  defaultSettingBMP();  // just a template or mandatory ... provided by documenation
+
+  // FOR WEBSOCKET
+  initializeSwitch();
+
+}
+
+void loop() {
+    // webSocket.loop();  // Keep the WebSocket connection alive
+    bool isSwitchOn =  isStateOn();
+    onSwitchBool(isSwitchOn);
+    delay(2500);
+
+    isSwitchOn =  isStateOn();
+    onSwitchBool(isSwitchOn);
+
+  // Read Values From BMP280 and store in variables
+    float temp = bmp.readTemperature(); // wil be Celcius
+    float pres = bmp.readPressure();  // will be in pascal
+    
+  // Print Value for Serial Monitor
+    printValues(temp,pres);
+
+  // Send Values to HOME ASSITANT
+    sendSensorData(temp,pres);
+     delay(2500);
+  
+
+}
+
+
+///////////////////////////////////////////////////////////////////////
+//  STEUP - FUNCTIONS START 
+///////////////////////////////////////////////////////////////////////
+void connectWIFI(){
+   WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Connecting to WiFi..");
+  }
+  Serial.println("Wifi Connected");
+  Serial.println(WiFi.localIP());
+}
+
+void connectBMP(){
+  while(!bmp.begin(0x77)){
+    Serial.println("Please Connect BMP280");
+    delay(10);
+
+  }
+  Serial.println("BME280 get Connected");
+}
+
+void defaultSettingBMP(){
+    /* Default settings from datasheet. */
+  bmp.setSampling(Adafruit_BMP280::MODE_NORMAL,     /* Operating Mode. */
+                  Adafruit_BMP280::SAMPLING_X2,     /* Temp. oversampling */
+                  Adafruit_BMP280::SAMPLING_X16,    /* Pressure oversampling */
+                  Adafruit_BMP280::FILTER_X16,      /* Filtering. */
+                  Adafruit_BMP280::STANDBY_MS_500); /* Standby time. */
+}
+///////////////////////////////////////////////////////////////////////
+//  STEUP - FUNCTIONS END 
+///////////////////////////////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////////////////////////////
+//  LOOP - FUNCTIONS START
+///////////////////////////////////////////////////////////////////////
+void printValues(float temp,float pres){
+  Serial.print(F("Temperature = "));
+    Serial.print(temp);
+    Serial.println(" *C");
+
+    Serial.print(F("Pressure = "));
+    Serial.print(pres);
+    Serial.println(" Pa");
+    Serial.println();
+
+}
+
+
+void sendSensorData(float temp, float pres) {
+     sendTempData(temp); // wthis funcstuion will cal api and send temp value
+     sendPressureData(pres);
+    }
+
+// Update Value of Temperature in Home Assitant Server
+void sendTempData(float temp) {
+    HTTPClient http; // help us to call api
+
+    // Construct the URL with the endpoint and token
+    String url = URL;
+    url += ENDPOINT_TEMPERATURE;
+
+    http.begin(client, url);  // Use WiFiClient object here
+    http.addHeader("Authorization", TOKEN);
+    http.addHeader("Content-Type", "application/json");
+
+    // Construct the JSON payload
+    String payload = "{\"state\":" + String(temp) + ",\"attributes\":{\"unit_of_measurement\":\"°C\",\"friendly_name\":\"Home Temperature\"}}";
+
+
+    // Send the POST request with the JSON payload
+    int httpResponseCode = http.POST(payload);
+
+    // ... Rest of the code ...
+}
+
+// Update Value of Pressure in Home Assitant Server
+void sendPressureData(float press) {
+    HTTPClient http;
+
+    // Construct the URL with the endpoint and token
+    String url = URL;
+    url += ENDPOINT_PRESSURE;
+
+    http.begin(client, url);  // Use WiFiClient object here
+    http.addHeader("Authorization", TOKEN);
+    http.addHeader("Content-Type", "application/json");
+
+    // Construct the JSON payload
+    String payload = "{\"state\":" + String(press) + ",\"attributes\":{\"unit_of_measurement\":\"Pa\",\"friendly_name\":\"Home Pressure\"}}";
+
+    // Send the POST request with the JSON payload
+    int httpResponseCode = http.POST(payload);
+
+   
+
+    // ... Rest of the code ...
+}
+
+
+bool isStateOn() {
+HTTPClient http;
+
+     String url = URL;
+    url += ENDPOINT_SWITCH;
+
+   http.begin(client, url);  // Use WiFiClient object here
+    http.addHeader("Authorization", TOKEN);
+    http.addHeader("Content-Type", "application/json");
+
+    int httpResponseCode = http.GET();
+    if (httpResponseCode == HTTP_CODE_OK) {
+        String payload = http.getString();
+
+        // Parse JSON
+        DynamicJsonDocument jsonDoc(1024);
+        DeserializationError error = deserializeJson(jsonDoc, payload);
+
+        if (!error) {
+            String state = jsonDoc["state"];
+
+            http.end();
+            return state == "on";
+        } else {
+            Serial.println("JSON Parsing Error");
+        }
+    } else {
+        Serial.println("HTTP GET Error");
+    }
+
+    http.end();
+    return false; // Default value if there's an error
+}
+///////////////////////////////////////////////////////////////////////
+//  LOOP - FUNCTIONS END
+///////////////////////////////////////////////////////////////////////
+
+
+void initializeSwitch() {
+  pinMode(switchPin, INPUT_PULLUP);  // Set the switch pin as input with internal pull-up resistor
+  pinMode(LED_BUILTIN, OUTPUT);      // Built-in Switch as output
+  pinMode(ledPin, OUTPUT);
+  // the initali value of switch d4 is off
+}
+
+
+///////////////////////////////////////////////////////////////////////
+//  Action on Switch State
+///////////////////////////////////////////////////////////////////////
+
+void onSwitchState(String state) {
+  if (state == "on") {
+    turnSwitchOn();
+  } else if (state == "off") {
+    turnSwitchOff();
+  }
+}
+void onSwitchBool(bool state) {
+  if (state == true) {
+    turnSwitchOn();
+  } else if (state == false) {
+    turnSwitchOff();
+  }
+}
+
+///////////////////////////////////////////////////////////////////////
+//  Turn Switch on or OFF
+///////////////////////////////////////////////////////////////////////
+void turnSwitchOn() {
+  Serial.println("Switch On");
+  digitalWrite(LED_BUILTIN, LOW);  // Turn on
+  
+}
+void turnSwitchOff() {
+  Serial.println("Switch OFf");
+  digitalWrite(LED_BUILTIN, HIGH);  // Turn off
+}
