@@ -1,0 +1,119 @@
+- id: 930b6c373f914890a20f01c97fd32698
+  alias: Temp too high - call michel
+  description: ''
+  trigger:
+  - platform: numeric_state
+    entity_id: sensor.home_temperature
+    above: 33.9999
+  action:
+  - service: notify.twilio_calls
+    data:
+      message: warning temperature is too high in your house
+      target:
+      - 972533385408
+  - service: notify.mobile_app_sm_a736b
+    data:
+      message: WARNING - Home temperature is too high
+      title: Temperature WARNING
+- id: '1692939287910'
+  alias: Temp over 30 - notify
+  description: ''
+  trigger:
+  - platform: numeric_state
+    entity_id: sensor.home_temperature
+    above: 29.999999
+  condition: []
+  action:
+  - service: notify.mobile_app_sm_a736b
+    data:
+      title: High Temperature
+      message: House temperature has reached 30 celsius
+  mode: single
+- id: '1692940435647'
+  alias: Temp over 35 - turn on ac
+  description: ''
+  trigger:
+  - platform: numeric_state
+    entity_id: sensor.home_temperature
+    above: 34.99999
+  condition: []
+  action:
+  - service: switch.turn_on
+    data: {}
+    target:
+      entity_id: switch.blind
+  - service: notify.mobile_app_sm_a736b
+    data:
+      message: House temperature is over 35, AC will be turned on automatically
+      title: Turning on AC
+  mode: single
+- id: '1692940544705'
+  alias: Temp over 40 - notify
+  description: ''
+  trigger:
+  - platform: numeric_state
+    entity_id: sensor.home_temperature
+    above: 39.999999
+  condition: []
+  action:
+  - service: notify.mobile_app_sm_a736b
+    data:
+      title: WARNING
+      message: House temperature has reach 40 celsius
+  mode: single
+- id: '1693045846438'
+  alias: Leaving Home - turn off ac
+  description: ''
+  trigger:
+  - platform: zone
+    entity_id: person.michel
+    zone: zone.home
+    event: leave
+  condition: []
+  action:
+  - service: switch.turn_off
+    data: {}
+    target:
+      entity_id: switch.blind
+  - service: notify.mobile_app_sm_a736b
+    data:
+      message: Youre leaving Home zone, turning off AC
+      title: Leaving Home Zone
+  mode: single
+- id: '1693138908905'
+  alias: AirC timer
+  description: ''
+  trigger:
+  - platform: state
+    entity_id:
+    - switch.blind
+    to: 'on'
+    for:
+      hours: 0
+      minutes: '{{ states.input_number.ac_timer.state | int }}'
+      seconds: 0
+  condition: []
+  action:
+  - service: switch.turn_off
+    data: {}
+    target:
+      entity_id: switch.blind
+  mode: single
+- id: '1694162305891'
+  alias: Temp below 20 - turn off ac
+  description: ''
+  trigger:
+  - platform: numeric_state
+    entity_id: sensor.home_temperature
+    below: 20
+  condition: []
+  action:
+  - service: switch.turn_off
+    data: {}
+    target:
+      entity_id: switch.blind
+  - service: notify.mobile_app_sm_a736b
+    data:
+      message: Home temperature is below 23 - Turning off AC
+      title: Save energy - Turning off AC
+  mode: single
