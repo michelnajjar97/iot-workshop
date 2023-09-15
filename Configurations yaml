@@ -1,0 +1,76 @@
+
+# Loads default set of integrations. Do not remove.
+default_config:
+
+# Load frontend themes from the themes folder
+frontend:
+  themes: !include_dir_merge_named themes
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+# # Sensors
+sensor:
+  - platform: template
+    sensors:
+      home_temperature:
+        friendly_name: Home Temperature
+        unit_of_measurement: °C
+        value_template: "{{ states('sensor.esp8266_temperature') | float }}"
+        
+      home_pressure:
+        friendly_name: Home Pressure
+        unit_of_measurement: Pa
+        value_template: "{{ states('sensor.esp8266_pressure') | float }}"
+
+sql:
+  - name: Food_name
+    db_url: mysql://michel:Iloveazure123@localhost/homeassistant
+    query: >
+     SELECT * FROM FOOD WHERE Temperature < 35 ORDER BY Temperature DESC LIMIT 1;
+    column: "Name"
+
+
+# Relay Switch code Starting 
+
+input_boolean:
+  blind_state:
+    name: "Blind State"
+    initial: off
+    icon: mdi:blinds
+
+
+
+# Twilio configuration.yaml entry
+twilio:
+  account_sid: AC3938de44217c4e0f68b2098c8faf39be
+  auth_token: 33099639d10f0fd3215aec62038d15b5
+# To Enable Twilio voice calls use the lines below
+notify: 
+  - name: twilio_calls
+    platform: twilio_call
+    from_number: +18147523052
+
+
+
+switch:
+  - platform: template
+    switches:
+      blind:
+        friendly_name: "Blind"
+        value_template: "{{ is_state('input_boolean.blind_state', 'on') }}"
+        turn_on:
+          service: input_boolean.turn_on
+          entity_id: input_boolean.blind_state
+        turn_off:
+          service: input_boolean.turn_off
+          entity_id: input_boolean.blind_state
+   
+# Relay Switch Ending
+
+
+# # DATABSE ATTACHING FOR RECORDING DATA AS History of Sensors
+# recorder:
+#   db_url: mysql://michel:Iloveazure123@homeassistantdb.mysql.database.azure.com/homeassistantdb?charset=utf8mb4;ssl=true
+
