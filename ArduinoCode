@@ -10,14 +10,19 @@
 
 
 /////////////////////////////////////////////////////
-//    WIFI CREDENTIALS
+//    WIFI CREDENTIALS -START
 /////////////////////////////////////////////////////
 const char* ssid = "wifi name";
 const char* password = "wifi password";
 /////////////////////////////////////////////////////
+//    WIFI CREDENTIALS - END
+/////////////////////////////////////////////////////
+
+
+
 
 ////////////////////////////////////////////////////
-//    GLOBAL VALUES AND VARIABLES - 
+//    GLOBAL VALUES AND VARIABLES - START
 ///////////////////////////////////////////////////
 // FOR TEMPERATURE
 const char URL[] = "http://4.246.178.136:8123/api/states/";
@@ -25,7 +30,7 @@ const char TOKEN[] = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiI2Yz
 const char ENDPOINT_TEMPERATURE[] = "sensor.home_temperature";
 const char ENDPOINT_PRESSURE[] = "sensor.home_pressure";
 const char ENDPOINT_SWITCH[] = "switch.blind";
-const int switchPin = 4;     // Pin D4 for the switch of our ESP8266
+const int switchPin = 4;         // Pin D4 for the switch of our ESP8266
 const int ledPin = LED_BUILTIN;  // Built-in LED pin for most ESP8266 boards
 
 
@@ -36,7 +41,7 @@ const int ledPin = LED_BUILTIN;  // Built-in LED pin for most ESP8266 boards
 #define BMP_CS   (10)
 Adafruit_BMP280 bmp; // I2C
 
-// This varaible is used for calling api ...
+// This varaible is used for calling api
 WiFiClient client;
 
 //////////////////////////////////////////////////////////////
@@ -46,8 +51,9 @@ WiFiClient client;
 
 
 
-
-
+//////////////////////////////////////////////////////////////
+//    SETUP - START
+////////////////////////////////////////////////////////////
 
 void setup() {
   Serial.begin(9600);
@@ -63,14 +69,21 @@ void setup() {
 
 }
 
+//////////////////////////////////////////////////////////////
+//    SETUP - END
+////////////////////////////////////////////////////////////
+
+
+//////////////////////////////////////////////////////////////
+//    LOOP - START
+////////////////////////////////////////////////////////////
+
+
 void loop() {
     // webSocket.loop();  // Keep the WebSocket connection alive
     bool isSwitchOn =  isStateOn();
     onSwitchBool(isSwitchOn);
     delay(2500);
-
-    isSwitchOn =  isStateOn();
-    onSwitchBool(isSwitchOn);
 
   // Read Values From BMP280 and store in variables
     float temp = bmp.readTemperature(); // wil be Celcius
@@ -82,9 +95,12 @@ void loop() {
   // Send Values to HOME ASSITANT
     sendSensorData(temp,pres);
      delay(2500);
-  
-
+ 
 }
+
+//////////////////////////////////////////////////////////////
+//    LOOP - END
+////////////////////////////////////////////////////////////
 
 
 ///////////////////////////////////////////////////////////////////////
@@ -104,7 +120,6 @@ void connectBMP(){
   while(!bmp.begin(0x77)){
     Serial.println("Please Connect BMP280");
     delay(10);
-
   }
   Serial.println("BME280 get Connected");
 }
@@ -126,7 +141,9 @@ void defaultSettingBMP(){
 ///////////////////////////////////////////////////////////////////////
 //  LOOP - FUNCTIONS START
 ///////////////////////////////////////////////////////////////////////
-void printValues(float temp,float pres){
+
+////////////////prints values to serial monitor////////////////////
+void printValues(float temp,float pres){ 
   Serial.print(F("Temperature = "));
     Serial.print(temp);
     Serial.println(" *C");
@@ -140,8 +157,8 @@ void printValues(float temp,float pres){
 
 
 void sendSensorData(float temp, float pres) {
-     sendTempData(temp); // wthis funcstuion will cal api and send temp value
-     sendPressureData(pres);
+     sendTempData(temp); // this function will cal api and send temp value
+     sendPressureData(pres); // this function will cal api and send pressure value
     }
 
 // Update Value of Temperature in Home Assitant Server
@@ -159,11 +176,9 @@ void sendTempData(float temp) {
     // Construct the JSON payload
     String payload = "{\"state\":" + String(temp) + ",\"attributes\":{\"unit_of_measurement\":\"°C\",\"friendly_name\":\"Home Temperature\"}}";
 
-
     // Send the POST request with the JSON payload
     int httpResponseCode = http.POST(payload);
 
-    // ... Rest of the code ...
 }
 
 // Update Value of Pressure in Home Assitant Server
@@ -184,16 +199,14 @@ void sendPressureData(float press) {
     // Send the POST request with the JSON payload
     int httpResponseCode = http.POST(payload);
 
-   
-
-    // ... Rest of the code ...
 }
 
-
+//////goes to home assistant server and gets an Http response,///////
+/////then checks if the ac button is on based on the returned information from the home assistant server///////
 bool isStateOn() {
 HTTPClient http;
 
-     String url = URL;
+    String url = URL;
     url += ENDPOINT_SWITCH;
 
    http.begin(client, url);  // Use WiFiClient object here
@@ -228,25 +241,20 @@ HTTPClient http;
 ///////////////////////////////////////////////////////////////////////
 
 
+///////////////////initializes the physical swtich on the esp///////////////////
+
 void initializeSwitch() {
   pinMode(switchPin, INPUT_PULLUP);  // Set the switch pin as input with internal pull-up resistor
   pinMode(LED_BUILTIN, OUTPUT);      // Built-in Switch as output
   pinMode(ledPin, OUTPUT);
-  // the initali value of switch d4 is off
+  // the inital value of switch d4 is off
 }
 
 
 ///////////////////////////////////////////////////////////////////////
-//  Action on Switch State
+//  Turn on/off Switch State in home assistant
 ///////////////////////////////////////////////////////////////////////
 
-void onSwitchState(String state) {
-  if (state == "on") {
-    turnSwitchOn();
-  } else if (state == "off") {
-    turnSwitchOff();
-  }
-}
 void onSwitchBool(bool state) {
   if (state == true) {
     turnSwitchOn();
@@ -256,7 +264,7 @@ void onSwitchBool(bool state) {
 }
 
 ///////////////////////////////////////////////////////////////////////
-//  Turn Switch on or OFF
+//  Turn Physical Switch ON or OFF
 ///////////////////////////////////////////////////////////////////////
 void turnSwitchOn() {
   Serial.println("Switch On");
