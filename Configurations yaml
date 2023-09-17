@@ -44,8 +44,8 @@ input_boolean:
 
 # Twilio configuration.yaml entry
 twilio:
-  account_sid: AC3938de44217c4e0f68b2098c8faf39be
-  auth_token: 33099639d10f0fd3215aec62038d15b5
+  account_sid: put_account_sid_number_here
+  auth_token: put_auth_token_number_here
 # To Enable Twilio voice calls use the lines below
 notify: 
   - name: twilio_calls
