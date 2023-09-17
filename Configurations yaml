@@ -24,13 +24,6 @@ sensor:
         unit_of_measurement: Pa
         value_template: "{{ states('sensor.esp8266_pressure') | float }}"
 
-sql:
-  - name: Food_name
-    db_url: mysql://michel:Iloveazure123@localhost/homeassistant
-    query: >
-     SELECT * FROM FOOD WHERE Temperature < 35 ORDER BY Temperature DESC LIMIT 1;
-    column: "Name"
-
 
 # Relay Switch code Starting 
 
@@ -39,19 +32,6 @@ input_boolean:
     name: "Blind State"
     initial: off
     icon: mdi:blinds
-
-
-
-# Twilio configuration.yaml entry
-twilio:
-  account_sid: put_account_sid_number_here
-  auth_token: put_auth_token_number_here
-# To Enable Twilio voice calls use the lines below
-notify: 
-  - name: twilio_calls
-    platform: twilio_call
-    from_number: +18147523052
-
 
 
 switch:
@@ -70,7 +50,12 @@ switch:
 # Relay Switch Ending
 
 
-# # DATABSE ATTACHING FOR RECORDING DATA AS History of Sensors
-# recorder:
-#   db_url: mysql://michel:Iloveazure123@homeassistantdb.mysql.database.azure.com/homeassistantdb?charset=utf8mb4;ssl=true
-
+# Twilio configuration.yaml entry
+twilio:
+  account_sid: put_account_sid_number_here
+  auth_token: put_auth_token_number_here
+# To Enable Twilio voice calls use the lines below
+notify: 
+  - name: twilio_calls
+    platform: twilio_call
+    from_number: +18147523052
